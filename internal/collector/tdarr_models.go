@@ -1,5 +1,47 @@
 package collector
 
+import (
+	"fmt"
+	"math"
+	"strconv"
+)
+
+// flexInt is an integer count that tolerates Tdarr's inconsistent JSON number
+// encoding. Tdarr (backed by MongoDB) sometimes serializes whole-number counters
+// as floats, e.g. "totalTranscodeCount": 847.0, which encoding/json refuses to
+// unmarshal into a plain int:
+//
+//	json: cannot unmarshal number 847.0 into Go value of type int
+//
+// flexInt accepts both encodings: it first tries a strict integer parse and, if
+// that fails, parses as a float and truncates toward zero. Every field using
+// flexInt is semantically a count, so truncation is lossless for integral values
+// and the best available approximation for the malformed fractional case.
+type flexInt int
+
+// UnmarshalJSON implements json.Unmarshaler. It accepts JSON integers (847),
+// floats (847.0, 8.47e2) and null (leaving the value untouched, matching
+// encoding/json's native handling of null for numeric fields).
+func (f *flexInt) UnmarshalJSON(data []byte) error {
+	raw := string(data)
+	if raw == "null" {
+		return nil
+	}
+	if n, err := strconv.ParseInt(raw, 10, 64); err == nil {
+		*f = flexInt(n)
+		return nil
+	}
+	n, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return fmt.Errorf("flexInt: cannot parse %q as an integer: %w", raw, err)
+	}
+	if math.IsNaN(n) || math.IsInf(n, 0) {
+		return fmt.Errorf("flexInt: cannot parse %q as an integer", raw)
+	}
+	*f = flexInt(int64(n))
+	return nil
+}
+
 type TdarrMetricRequest struct {
 	Data TdarrDataRequest `json:"data"`
 }
@@ -19,15 +61,15 @@ type TdarrPieDataRequest struct {
 }
 
 type TdarrPieSlice struct {
-	Name  string `json:"name"`
-	Value int    `json:"value"`
+	Name  string  `json:"name"`
+	Value flexInt `json:"value"`
 }
 
 // core metrics
 type TdarrMetric struct {
-	TotalFileCount        int              `json:"totalFileCount"`
-	TotalTranscodeCount   int              `json:"totalTranscodeCount"`
-	TotalHealthCheckCount int              `json:"totalHealthCheckCount"`
+	TotalFileCount        flexInt          `json:"totalFileCount"`
+	TotalTranscodeCount   flexInt          `json:"totalTranscodeCount"`
+	TotalHealthCheckCount flexInt          `json:"totalHealthCheckCount"`
 	SizeDiff              float64          `json:"sizeDiff"`
 	TdarrScore            string           `json:"tdarrScore"`
 	HealthCheckScore      string           `json:"healthCheckScore"`
@@ -39,13 +81,13 @@ type TdarrMetric struct {
 	// table4=Health check queue, table5=Health check healthy, table6=Health check error+cancelled.
 	// Older Tdarr versions may omit these fields; Go's JSON decoder defaults them to 0,
 	// which means 0==0 comparisons never trigger spurious refetches (graceful degradation).
-	HoldQueue          int `json:"table0Count"`
-	TranscodeQueue     int `json:"table1Count"`
-	TranscodeSuccess   int `json:"table2Count"` // includes "not required" per Tdarr UI grouping
-	TranscodeFailed    int `json:"table3Count"` // includes "cancelled"
-	HealthCheckQueue   int `json:"table4Count"`
-	HealthCheckSuccess int `json:"table5Count"`
-	HealthCheckFailed  int `json:"table6Count"` // includes "cancelled"
+	HoldQueue          flexInt `json:"table0Count"`
+	TranscodeQueue     flexInt `json:"table1Count"`
+	TranscodeSuccess   flexInt `json:"table2Count"` // includes "not required" per Tdarr UI grouping
+	TranscodeFailed    flexInt `json:"table3Count"` // includes "cancelled"
+	HealthCheckQueue   flexInt `json:"table4Count"`
+	HealthCheckSuccess flexInt `json:"table5Count"`
+	HealthCheckFailed  flexInt `json:"table6Count"` // includes "cancelled"
 }
 
 // TdarrServerStatus decodes GET /api/v2/status. Only the fields surfaced as
@@ -77,10 +119,10 @@ type TdarrPieStats struct {
 }
 
 type TdarrPieStat struct {
-	TotalFiles            int                 `json:"totalFiles"`
-	TotalTranscodeCount   int                 `json:"totalTranscodeCount"`
+	TotalFiles            flexInt             `json:"totalFiles"`
+	TotalTranscodeCount   flexInt             `json:"totalTranscodeCount"`
 	SizeDiff              float64             `json:"sizeDiff"`
-	TotalHealthCheckCount int                 `json:"totalHealthCheckCount"`
+	TotalHealthCheckCount flexInt             `json:"totalHealthCheckCount"`
 	Status                TdarrPieStatusSlice `json:"status"`
 	Video                 TdarrPieVideoSlice  `json:"video"`
 	Audio                 TdarrPieVideoSlice  `json:"audio"`

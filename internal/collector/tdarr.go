@@ -570,16 +570,16 @@ func (c *TdarrCollector) Collect(ch chan<- prometheus.Metric) {
 // place (used by both the cache-write and the refetch comparison).
 func totalsFromMetric(metric *TdarrMetric) tdarrCacheTotals {
 	return tdarrCacheTotals{
-		totalFileCount:        metric.TotalFileCount,
-		totalTranscodeCount:   metric.TotalTranscodeCount,
-		totalHealthCheckCount: metric.TotalHealthCheckCount,
-		holdQueue:             metric.HoldQueue,
-		transcodeQueue:        metric.TranscodeQueue,
-		transcodeSuccess:      metric.TranscodeSuccess,
-		transcodeFailed:       metric.TranscodeFailed,
-		healthCheckQueue:      metric.HealthCheckQueue,
-		healthCheckSuccess:    metric.HealthCheckSuccess,
-		healthCheckFailed:     metric.HealthCheckFailed,
+		totalFileCount:        int(metric.TotalFileCount),
+		totalTranscodeCount:   int(metric.TotalTranscodeCount),
+		totalHealthCheckCount: int(metric.TotalHealthCheckCount),
+		holdQueue:             int(metric.HoldQueue),
+		transcodeQueue:        int(metric.TranscodeQueue),
+		transcodeSuccess:      int(metric.TranscodeSuccess),
+		transcodeFailed:       int(metric.TranscodeFailed),
+		healthCheckQueue:      int(metric.HealthCheckQueue),
+		healthCheckSuccess:    int(metric.HealthCheckSuccess),
+		healthCheckFailed:     int(metric.HealthCheckFailed),
 	}
 }
 
@@ -644,9 +644,9 @@ func (c *TdarrCollector) collect(ctx context.Context, ch chan<- prometheus.Metri
 		return false, err
 	}
 
-	c.logger.Debug().Int("totalFiles", metric.TotalFileCount).
-		Int("totalTranscodes", metric.TotalTranscodeCount).
-		Int("totalHealthChecks", metric.TotalHealthCheckCount).
+	c.logger.Debug().Int("totalFiles", int(metric.TotalFileCount)).
+		Int("totalTranscodes", int(metric.TotalTranscodeCount)).
+		Int("totalHealthChecks", int(metric.TotalHealthCheckCount)).
 		Msg("General stats totals")
 
 	// get metrics data
