@@ -26,8 +26,8 @@ type TdarrPieSlice struct {
 // core metrics
 type TdarrMetric struct {
 	TotalFileCount        int              `json:"totalFileCount"`
-	TotalTranscodeCount   int              `json:"totalTranscodeCount"`
-	TotalHealthCheckCount int              `json:"totalHealthCheckCount"`
+	TotalTranscodeCount   float64          `json:"totalTranscodeCount"`
+	TotalHealthCheckCount float64          `json:"totalHealthCheckCount"`
 	SizeDiff              float64          `json:"sizeDiff"`
 	TdarrScore            string           `json:"tdarrScore"`
 	HealthCheckScore      string           `json:"healthCheckScore"`

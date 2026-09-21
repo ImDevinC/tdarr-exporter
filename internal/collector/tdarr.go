@@ -571,8 +571,8 @@ func (c *TdarrCollector) Collect(ch chan<- prometheus.Metric) {
 func totalsFromMetric(metric *TdarrMetric) tdarrCacheTotals {
 	return tdarrCacheTotals{
 		totalFileCount:        metric.TotalFileCount,
-		totalTranscodeCount:   metric.TotalTranscodeCount,
-		totalHealthCheckCount: metric.TotalHealthCheckCount,
+		totalTranscodeCount:   int(metric.TotalTranscodeCount),
+		totalHealthCheckCount: int(metric.TotalHealthCheckCount),
 		holdQueue:             metric.HoldQueue,
 		transcodeQueue:        metric.TranscodeQueue,
 		transcodeSuccess:      metric.TranscodeSuccess,
@@ -645,8 +645,8 @@ func (c *TdarrCollector) collect(ctx context.Context, ch chan<- prometheus.Metri
 	}
 
 	c.logger.Debug().Int("totalFiles", metric.TotalFileCount).
-		Int("totalTranscodes", metric.TotalTranscodeCount).
-		Int("totalHealthChecks", metric.TotalHealthCheckCount).
+		Int("totalTranscodes", int(metric.TotalTranscodeCount)).
+		Int("totalHealthChecks", int(metric.TotalHealthCheckCount)).
 		Msg("General stats totals")
 
 	// get metrics data
