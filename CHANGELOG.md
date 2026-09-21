@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.0.1](https://github.com/ImDevinC/tdarr-exporter/compare/v4.0.0...v4.0.1) (2026-09-21)
+
+
+### Bug Fixes
+
+* accept float-encoded numbers in all Tdarr API models ([972f181](https://github.com/ImDevinC/tdarr-exporter/commit/972f181421643d175597d1b37ce40cfe37403a23))
+* accept float-encoded numbers in all Tdarr API models ([0dd886c](https://github.com/ImDevinC/tdarr-exporter/commit/0dd886cf1f3cb94feee1d32d4963700a00b416b4))
+
 ## [4.0.0](https://github.com/ImDevinC/tdarr-exporter/compare/v3.0.0...v4.0.0) (2026-09-21)
 
 
