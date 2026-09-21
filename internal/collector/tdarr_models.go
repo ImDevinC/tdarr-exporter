@@ -1,5 +1,49 @@
 package collector
 
+import (
+	"fmt"
+	"math"
+	"strconv"
+)
+
+// flexInt is an integer count that tolerates Tdarr's inconsistent JSON number
+// encoding. Tdarr is MongoDB-backed, so a value's JSON encoding depends on its
+// stored BSON type: some counters serialize as integers (847) and others as
+// doubles (847.0). encoding/json refuses to decode a number with a decimal
+// point into a plain int and aborts the whole decode:
+//
+//	json: cannot unmarshal number 847.0 into Go value of type int
+//
+// flexInt accepts either encoding. Every field using it is semantically a count,
+// so truncation toward zero is lossless for integral values and the best
+// available approximation for a malformed fractional one.
+type flexInt int64
+
+// UnmarshalJSON accepts JSON integers (847), floats (847.0, 8.47e2) and null
+// (leaving the value untouched, matching encoding/json's handling of null for
+// numeric fields).
+func (f *flexInt) UnmarshalJSON(data []byte) error {
+	raw := string(data)
+	if raw == "null" {
+		return nil
+	}
+	// Fast path: a plain integer (the common case) parses without going through
+	// float, so large counters keep full int64 precision.
+	if n, err := strconv.ParseInt(raw, 10, 64); err == nil {
+		*f = flexInt(n)
+		return nil
+	}
+	n, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return fmt.Errorf("flexInt: cannot parse %q as an integer: %w", raw, err)
+	}
+	if math.IsNaN(n) || math.IsInf(n, 0) {
+		return fmt.Errorf("flexInt: cannot parse %q as an integer", raw)
+	}
+	*f = flexInt(int64(n))
+	return nil
+}
+
 type TdarrMetricRequest struct {
 	Data TdarrDataRequest `json:"data"`
 }
@@ -19,15 +63,15 @@ type TdarrPieDataRequest struct {
 }
 
 type TdarrPieSlice struct {
-	Name  string `json:"name"`
-	Value int    `json:"value"`
+	Name  string  `json:"name"`
+	Value flexInt `json:"value"`
 }
 
 // core metrics
 type TdarrMetric struct {
-	TotalFileCount        int              `json:"totalFileCount"`
-	TotalTranscodeCount   float64          `json:"totalTranscodeCount"`
-	TotalHealthCheckCount float64          `json:"totalHealthCheckCount"`
+	TotalFileCount        flexInt          `json:"totalFileCount"`
+	TotalTranscodeCount   flexInt          `json:"totalTranscodeCount"`
+	TotalHealthCheckCount flexInt          `json:"totalHealthCheckCount"`
 	SizeDiff              float64          `json:"sizeDiff"`
 	TdarrScore            string           `json:"tdarrScore"`
 	HealthCheckScore      string           `json:"healthCheckScore"`
@@ -39,23 +83,23 @@ type TdarrMetric struct {
 	// table4=Health check queue, table5=Health check healthy, table6=Health check error+cancelled.
 	// Older Tdarr versions may omit these fields; Go's JSON decoder defaults them to 0,
 	// which means 0==0 comparisons never trigger spurious refetches (graceful degradation).
-	HoldQueue          int `json:"table0Count"`
-	TranscodeQueue     int `json:"table1Count"`
-	TranscodeSuccess   int `json:"table2Count"` // includes "not required" per Tdarr UI grouping
-	TranscodeFailed    int `json:"table3Count"` // includes "cancelled"
-	HealthCheckQueue   int `json:"table4Count"`
-	HealthCheckSuccess int `json:"table5Count"`
-	HealthCheckFailed  int `json:"table6Count"` // includes "cancelled"
+	HoldQueue          flexInt `json:"table0Count"`
+	TranscodeQueue     flexInt `json:"table1Count"`
+	TranscodeSuccess   flexInt `json:"table2Count"` // includes "not required" per Tdarr UI grouping
+	TranscodeFailed    flexInt `json:"table3Count"` // includes "cancelled"
+	HealthCheckQueue   flexInt `json:"table4Count"`
+	HealthCheckSuccess flexInt `json:"table5Count"`
+	HealthCheckFailed  flexInt `json:"table6Count"` // includes "cancelled"
 }
 
 // TdarrServerStatus decodes GET /api/v2/status. Only the fields surfaced as
 // metrics/labels are mapped; isProduction/buildDate are intentionally omitted.
 // uptime is Tdarr's Node.js process.uptime(), i.e. seconds.
 type TdarrServerStatus struct {
-	Status  string `json:"status"`
-	Version string `json:"version"`
-	Os      string `json:"os"`
-	Uptime  int64  `json:"uptime"`
+	Status  string  `json:"status"`
+	Version string  `json:"version"`
+	Os      string  `json:"os"`
+	Uptime  flexInt `json:"uptime"`
 }
 
 // new api `api/v2/stats/get-pies` support
@@ -77,10 +121,10 @@ type TdarrPieStats struct {
 }
 
 type TdarrPieStat struct {
-	TotalFiles            int                 `json:"totalFiles"`
-	TotalTranscodeCount   int                 `json:"totalTranscodeCount"`
+	TotalFiles            flexInt             `json:"totalFiles"`
+	TotalTranscodeCount   flexInt             `json:"totalTranscodeCount"`
 	SizeDiff              float64             `json:"sizeDiff"`
-	TotalHealthCheckCount int                 `json:"totalHealthCheckCount"`
+	TotalHealthCheckCount flexInt             `json:"totalHealthCheckCount"`
 	Status                TdarrPieStatusSlice `json:"status"`
 	Video                 TdarrPieVideoSlice  `json:"video"`
 	Audio                 TdarrPieVideoSlice  `json:"audio"`
@@ -98,9 +142,9 @@ type TdarrPieVideoSlice struct {
 }
 
 type TdarrStreamStatsObj struct {
-	Average int64 `json:"average"`
-	Highest int64 `json:"highest"`
-	Total   int64 `json:"total"`
+	Average flexInt `json:"average"`
+	Highest flexInt `json:"highest"`
+	Total   flexInt `json:"total"`
 }
 
 type TdarrStreamStats struct {
@@ -111,9 +155,9 @@ type TdarrStreamStats struct {
 
 type TdarrResourceStats struct {
 	Process struct {
-		Uptime      int64  `json:"uptime"`
-		HeapUsedMb  string `json:"heapUsedMB"`
-		HeapTotalMb string `json:"heapTotalMB"`
+		Uptime      flexInt `json:"uptime"`
+		HeapUsedMb  string  `json:"heapUsedMB"`
+		HeapTotalMb string  `json:"heapTotalMB"`
 	} `json:"process"`
 	Os struct {
 		CpuPercent string `json:"cpuPerc"`
@@ -130,27 +174,27 @@ type TdarrNode struct {
 	WorkerLimits    TdarrNodeJobs               `json:"workerLimits"`
 	GpuSelect       string                      `json:"gpuSelect"`
 	Paused          bool                        `json:"nodePaused"`
-	Priority        int                         `json:"priority"`
+	Priority        flexInt                     `json:"priority"`
 	Workers         map[string]TdarrNodeWorkers `json:"workers"`
 	ResourceStats   TdarrResourceStats          `json:"resStats"`
 	QueueLengths    TdarrNodeJobs               `json:"queueLengths"`
-	MaxGpuWorkers   int                         `json:"maxGpuWorkers"`
+	MaxGpuWorkers   flexInt                     `json:"maxGpuWorkers"`
 	ScheduleEnabled bool                        `json:"scheduleEnabled"`
 	AllowGpuDoCpu   bool                        `json:"allowGpuDoCpu"`
 }
 
 type TdarrNodeConfig struct {
-	ServerIp   string `json:"serverIP"`
-	ServerPort string `json:"serverPort"`
-	Priority   int    `json:"priority"`
-	Pid        int    `json:"processPid"`
+	ServerIp   string  `json:"serverIP"`
+	ServerPort string  `json:"serverPort"`
+	Priority   flexInt `json:"priority"`
+	Pid        flexInt `json:"processPid"`
 }
 
 type TdarrNodeJobs struct {
-	HealthCheckCpu int `json:"healthcheckcpu"`
-	HealthCheckGpu int `json:"healthcheckgpu"`
-	TranscodeCpu   int `json:"transcodecpu"`
-	TranscodeGpu   int `json:"transcodegpu"`
+	HealthCheckCpu flexInt `json:"healthcheckcpu"`
+	HealthCheckGpu flexInt `json:"healthcheckgpu"`
+	TranscodeCpu   flexInt `json:"transcodecpu"`
+	TranscodeGpu   flexInt `json:"transcodegpu"`
 }
 
 type TdarrNodeWorkers struct {
@@ -161,27 +205,27 @@ type TdarrNodeWorkers struct {
 	File               string  `json:"file"`
 	OriginalfileSizeGb float64 `json:"originalfileSizeInGbytes"`
 	Percentage         float64 `json:"percentage"`
-	Fps                int     `json:"fps"`
+	Fps                flexInt `json:"fps"`
 	Eta                string  `json:"ETA"`
 	Status             string  `json:"status"`
-	StatusTs           int64   `json:"statusTs"`
+	StatusTs           flexInt `json:"statusTs"`
 	Job                struct {
-		Version   string `json:"version"`
-		StartTime int64  `json:"start"`
-		Type      string `json:"type"`
-		JobId     string `json:"jobId"`
+		Version   string  `json:"version"`
+		StartTime flexInt `json:"start"`
+		Type      string  `json:"type"`
+		JobId     string  `json:"jobId"`
 	} `json:"job"`
 	Process struct {
-		Connected bool   `json:"connected"`
-		Pid       int    `json:"pid"`
-		CliType   string `json:"cliType"`
+		Connected bool    `json:"connected"`
+		Pid       flexInt `json:"pid"`
+		CliType   string  `json:"cliType"`
 	} `json:"process"`
 	LastPluginDetails struct {
 		Source         string `json:"source"`
 		Id             string `json:"id"`
 		PositionNumber string `json:"number"`
 	} `json:"lastPluginDetails"`
-	StartTime        int64   `json:"startTime"` // start time of current processing step (plugin or flow step)
+	StartTime        flexInt `json:"startTime"` // start time of current processing step (plugin or flow step)
 	OutputFileSizeGb float64 `json:"outputFileSizeInGbytes"`
 	EstSizeGb        float64 `json:"estSize"`
 }

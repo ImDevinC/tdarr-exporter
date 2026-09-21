@@ -480,9 +480,9 @@ func TestEmitNodeMetrics(t *testing.T) {
 		Name: "BusyNode",
 		ResourceStats: TdarrResourceStats{
 			Process: struct {
-				Uptime      int64  `json:"uptime"`
-				HeapUsedMb  string `json:"heapUsedMB"`
-				HeapTotalMb string `json:"heapTotalMB"`
+				Uptime      flexInt `json:"uptime"`
+				HeapUsedMb  string  `json:"heapUsedMB"`
+				HeapTotalMb string  `json:"heapTotalMB"`
 			}{Uptime: 3600, HeapUsedMb: "128.5", HeapTotalMb: "256.0"},
 			Os: struct {
 				CpuPercent string `json:"cpuPerc"`
@@ -511,9 +511,9 @@ func TestEmitNodeMetrics(t *testing.T) {
 		Name: "IdleNode",
 		ResourceStats: TdarrResourceStats{
 			Process: struct {
-				Uptime      int64  `json:"uptime"`
-				HeapUsedMb  string `json:"heapUsedMB"`
-				HeapTotalMb string `json:"heapTotalMB"`
+				Uptime      flexInt `json:"uptime"`
+				HeapUsedMb  string  `json:"heapUsedMB"`
+				HeapTotalMb string  `json:"heapTotalMB"`
 			}{Uptime: 10, HeapUsedMb: "not-a-number", HeapTotalMb: "64.0"},
 			Os: struct {
 				CpuPercent string `json:"cpuPerc"`
