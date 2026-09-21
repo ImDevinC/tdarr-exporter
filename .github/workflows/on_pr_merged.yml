@@ -11,6 +11,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  packages: write
+
 # cancel a stale in-flight build so :main reflects the newest commit on rapid merges
 concurrency:
   group: main-image
@@ -30,7 +34,6 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     needs: test
-    environment: "Dockerhub"
     timeout-minutes: 10
     steps:
       - name: Checkout

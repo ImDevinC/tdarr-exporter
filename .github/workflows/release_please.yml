@@ -10,6 +10,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  packages: write
 
 # Never cancel a release mid-flight. Release PR checks are the gate; when this
 # workflow creates a release, artifact jobs should be allowed to finish.
@@ -46,7 +47,6 @@ jobs:
     needs: [release-please, tests]
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
-    environment: "Dockerhub"
     timeout-minutes: 10
     steps:
       - name: Checkout

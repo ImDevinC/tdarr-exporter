@@ -27,7 +27,7 @@ runs:
       id: meta
       uses: docker/metadata-action@v6
       with:
-        images: docker.io/${{ github.repository }}
+        images: ghcr.io/${{ github.repository }}
         flavor: |
           latest=${{ fromJSON(inputs.latest) }}
         # for some reason can't get this to show up from docker image labels
@@ -55,8 +55,9 @@ runs:
       if: github.event_name != 'pull_request'
       uses: docker/login-action@v4
       with:
+        registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ github.token }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build Docker Image
       if: github.event_name != 'pull_request'
