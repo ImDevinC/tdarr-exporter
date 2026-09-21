@@ -479,8 +479,16 @@ func TestEmitNodeMetrics(t *testing.T) {
 		Id:   "node-busy",
 		Name: "BusyNode",
 		ResourceStats: TdarrResourceStats{
-			Process: TdarrProcessStats{Uptime: 3600, HeapUsedMb: "128.5", HeapTotalMb: "256.0"},
-			Os:      TdarrOsStats{CpuPercent: "42.0", MemUsedGb: "8.0", MemTotalGb: "16.0"},
+			Process: struct {
+				Uptime      flexInt `json:"uptime"`
+				HeapUsedMb  string  `json:"heapUsedMB"`
+				HeapTotalMb string  `json:"heapTotalMB"`
+			}{Uptime: 3600, HeapUsedMb: "128.5", HeapTotalMb: "256.0"},
+			Os: struct {
+				CpuPercent string `json:"cpuPerc"`
+				MemUsedGb  string `json:"memUsedGB"`
+				MemTotalGb string `json:"memTotalGB"`
+			}{CpuPercent: "42.0", MemUsedGb: "8.0", MemTotalGb: "16.0"},
 		},
 		Workers: map[string]TdarrNodeWorkers{
 			"w1": {
@@ -502,8 +510,16 @@ func TestEmitNodeMetrics(t *testing.T) {
 		Id:   "node-idle",
 		Name: "IdleNode",
 		ResourceStats: TdarrResourceStats{
-			Process: TdarrProcessStats{Uptime: 10, HeapUsedMb: "not-a-number", HeapTotalMb: "64.0"},
-			Os:      TdarrOsStats{CpuPercent: "1.0", MemUsedGb: "1.0", MemTotalGb: "8.0"},
+			Process: struct {
+				Uptime      flexInt `json:"uptime"`
+				HeapUsedMb  string  `json:"heapUsedMB"`
+				HeapTotalMb string  `json:"heapTotalMB"`
+			}{Uptime: 10, HeapUsedMb: "not-a-number", HeapTotalMb: "64.0"},
+			Os: struct {
+				CpuPercent string `json:"cpuPerc"`
+				MemUsedGb  string `json:"memUsedGB"`
+				MemTotalGb string `json:"memTotalGB"`
+			}{CpuPercent: "1.0", MemUsedGb: "1.0", MemTotalGb: "8.0"},
 		},
 		Workers: map[string]TdarrNodeWorkers{},
 	}

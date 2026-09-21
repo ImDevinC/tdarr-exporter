@@ -154,23 +154,16 @@ type TdarrStreamStats struct {
 }
 
 type TdarrResourceStats struct {
-	Process TdarrProcessStats `json:"process"`
-	Os      TdarrOsStats      `json:"os"`
-}
-
-// TdarrProcessStats is the per-node process resource block (resStats.process).
-type TdarrProcessStats struct {
-	Uptime      flexInt `json:"uptime"`
-	HeapUsedMb  string  `json:"heapUsedMB"`
-	HeapTotalMb string  `json:"heapTotalMB"`
-}
-
-// TdarrOsStats is the per-node host OS resource block (resStats.os). Values are
-// numeric strings (Tdarr serializes them as strings), parsed at emit time.
-type TdarrOsStats struct {
-	CpuPercent string `json:"cpuPerc"`
-	MemUsedGb  string `json:"memUsedGB"`
-	MemTotalGb string `json:"memTotalGB"`
+	Process struct {
+		Uptime      flexInt `json:"uptime"`
+		HeapUsedMb  string  `json:"heapUsedMB"`
+		HeapTotalMb string  `json:"heapTotalMB"`
+	} `json:"process"`
+	Os struct {
+		CpuPercent string `json:"cpuPerc"`
+		MemUsedGb  string `json:"memUsedGB"`
+		MemTotalGb string `json:"memTotalGB"`
+	} `json:"os"`
 }
 
 type TdarrNode struct {
