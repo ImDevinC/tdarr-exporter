@@ -113,7 +113,7 @@ func normalizeStatusSlice(
 	for _, s := range raw {
 		cleaned := cleaner(s.Name)
 		if _, isKnown := known[cleaned]; isKnown {
-			result[cleaned] = s.Value
+			result[cleaned] = int(s.Value)
 		} else {
 			// Unknown status: emit with real value but warn and bump counter.
 			log.Warn().
@@ -122,7 +122,7 @@ func normalizeStatusSlice(
 				Str("cleanedStatus", cleaned).
 				Str("libraryId", libraryId).
 				Msg("Unknown pie status encountered; will emit metric but zero-pad not applied for future scrapes")
-			result[cleaned] = s.Value
+			result[cleaned] = int(s.Value)
 			if unknownCounter != nil {
 				unknownCounter(kind, cleaned)
 			}
